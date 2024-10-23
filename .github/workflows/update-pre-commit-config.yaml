@@ -36,7 +36,7 @@ jobs:
         id: get_black_version
         run: |
           LATEST_BLACK_VERSION=$(curl -s https://api.github.com/repos/psf/black/releases/latest | python3 -c "import sys, json; print(json.load(sys.stdin)['tag_name'])")
-          echo "::set-output name=black_version::$LATEST_BLACK_VERSION"
+          echo "black_version=$LATEST_BLACK_VERSION" >> $GITHUB_OUTPUT
 
       - name: Check and update pre-commit config
         run: |
