@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 0 * * 1" # Runs every Monday at midnight UTC
   workflow_dispatch:
+  push:
+    branches-ignore:
+      - "update-black-*"
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -65,7 +71,3 @@ jobs:
             automated
             pre-commit
           draft: false
-defaults:
-env:
-run-name:
-concurrency:
