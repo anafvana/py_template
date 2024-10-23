@@ -39,6 +39,7 @@ jobs:
           echo "black_version=$LATEST_BLACK_VERSION" >> $GITHUB_OUTPUT
 
       - name: Check and update pre-commit config
+        id: check_pre_commit_config
         run: |
           CURRENT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('.pre-commit-config.yaml'))['repos'][0]['rev'])")
           LATEST_BLACK_VERSION="${{ steps.get_black_version.outputs.black_version }}"
@@ -49,22 +50,37 @@ jobs:
             python3 update_precommit.py $LATEST_BLACK_VERSION
             git config --global user.name "GitHub Action"
             git config --global user.email "action@github.com"
+            git push -d origin update-black-$LATEST_BLACK_VERSION 
             git checkout -b update-black-$LATEST_BLACK_VERSION
             git add .pre-commit-config.yaml
-            git commit -m 'Update Black version to $LATEST_BLACK_VERSION in pre-commit'
+            git commit -m '🆙 UPGRADE: Black version to $LATEST_BLACK_VERSION in pre-commit'
             git push origin update-black-$LATEST_BLACK_VERSION  
+            echo "version_updated=true" >> $GITHUB_OUTPUT
+            sleep 5
           else
             echo 'Black version is up to date.'
+            echo "version_updated=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Checkout to main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Reset main branch
+        run: |
+          git fetch origin update-black-${{ steps.get_black_version.outputs.black_version }}:update-black-${{ steps.get_black_version.outputs.black_version }}
+          git reset --hard update-black-${{ steps.get_black_version.outputs.black_version }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
           branch: update-black-${{ steps.get_black_version.outputs.black_version }}
           delete-branch: true
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-          commit-message: "Update Black version to ${{ steps.get_black_version.outputs.black_version }} in pre-commit"
+          commit-message: "🆙 UPGRADE: Black version to ${{ steps.get_black_version.outputs.black_version }} in pre-commit"
           title: "Update Black to ${{ steps.get_black_version.outputs.black_version }}"
           body: "This PR updates Black to the latest version ${{ steps.get_black_version.outputs.black_version }} in .pre-commit-config.yaml"
           labels: |
