@@ -63,16 +63,19 @@ jobs:
           fi
 
       - name: Checkout to main
+        if: steps.check_pre_commit_config.outputs.version_updated == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
 
       - name: Reset main branch
+        if: steps.check_pre_commit_config.outputs.version_updated == 'true'
         run: |
           git fetch origin update-black-${{ steps.get_black_version.outputs.black_version }}:update-black-${{ steps.get_black_version.outputs.black_version }}
           git reset --hard update-black-${{ steps.get_black_version.outputs.black_version }}
 
       - name: Create Pull Request
+        if: steps.check_pre_commit_config.outputs.version_updated == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
