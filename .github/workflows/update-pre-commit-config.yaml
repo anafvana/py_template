@@ -1,0 +1,71 @@
+name: Update .pre-commit-config.yaml for Black
+
+on:
+  schedule:
+    - cron: "0 0 * * 1" # Runs every Monday at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-black-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          pip install PyYAML requests
+
+      - name: Get latest Black version
+        id: get_black_version
+        run: |
+          LATEST_BLACK_VERSION=$(curl -s https://api.github.com/repos/psf/black/releases/latest | python3 -c "import sys, json; print(json.load(sys.stdin)['tag_name'])")
+          echo "::set-output name=black_version::$LATEST_BLACK_VERSION"
+
+      - name: Check and update pre-commit config
+        run: |
+          CURRENT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('.pre-commit-config.yaml'))['repos'][0]['rev'])")
+          LATEST_BLACK_VERSION="${{ steps.get_black_version.outputs.black_version }}"
+
+          if [ "$CURRENT_VERSION" != "$LATEST_BLACK_VERSION" ]; then
+            echo 'Found different versions'
+            echo "Updating .pre-commit-config.yaml to use Black $LATEST_BLACK_VERSION"
+            python3 update_precommit.py $LATEST_BLACK_VERSION
+            git config --global user.name "GitHub Action"
+            git config --global user.email "action@github.com"
+            git checkout -b update-black-$LATEST_BLACK_VERSION
+            git add .pre-commit-config.yaml
+            git commit -m 'Update Black version to $LATEST_BLACK_VERSION in pre-commit'
+            git push origin update-black-$LATEST_BLACK_VERSION  
+          else
+            echo 'Black version is up to date.'
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: update-black-${{ steps.get_black_version.outputs.black_version }}
+          delete-branch: true
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          commit-message: "Update Black version to ${{ steps.get_black_version.outputs.black_version }} in pre-commit"
+          title: "Update Black to ${{ steps.get_black_version.outputs.black_version }}"
+          body: "This PR updates Black to the latest version ${{ steps.get_black_version.outputs.black_version }} in .pre-commit-config.yaml"
+          labels: |
+            automated
+            pre-commit
+          draft: false
+defaults:
+env:
+run-name:
+concurrency:
