@@ -20,5 +20,5 @@ def test_raising_errors():
 
 def test_foo(mocker):
     assert getenv("testVar") is None
-    mocker.patch.dict(environ, {'testVar': 'test_value'})
-    assert getenv("testVar") == 'test_value'
+    mocker.patch.dict(environ, {"testVar": "test_value"})
+    assert getenv("testVar") == "test_value"
