@@ -34,6 +34,12 @@ which flit
 flit install --extras all
 ```
 
+6. Install `pre-commit`
+
+```commandline
+pre-commit install
+```
+
 ## Dependencies
 
 Manage dependencies via `pyproject.toml`.
