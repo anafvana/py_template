@@ -4,7 +4,9 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "CHANGE_ME"
-authors = [{ name = "Ana", email = "56302061+anafvana@users.noreply.github.com" }]
+authors = [
+    { name = "Ana", email = "56302061+anafvana@users.noreply.github.com" },
+]
 readme = "README.md"
 description = "CHANGE_ME"
 dynamic = ["version"]
@@ -37,5 +39,5 @@ python_version = "3.13"
 [tool.flake8]
 ignore = ['E501']
 per-file-ignores = ['__init__.py:F401,F403']
-exclude = [".git", "__pycache__", "old", "build", "dist"]
+exclude = [".git", "venv", ".venv", "__pycache__", "old", "build", "dist"]
 count = true
