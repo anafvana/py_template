@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches-ignore:
-      - "update-black-*"
+      - "update-precommit-*"
   pull_request:
     branches:
       - main
@@ -16,7 +16,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  check-black-version:
+  check-repo-versions:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,60 +32,72 @@ jobs:
         run: |
           pip install PyYAML requests
 
-      - name: Get latest Black version
-        id: get_black_version
+      - name: Run update script and capture output
+        id: check_versions
         run: |
-          LATEST_BLACK_VERSION=$(curl -s https://api.github.com/repos/psf/black/releases/latest | python3 -c "import sys, json; print(json.load(sys.stdin)['tag_name'])")
-          echo "black_version=$LATEST_BLACK_VERSION" >> $GITHUB_OUTPUT
+          # Run the Python script that checks and updates the repos, outputting list of updated repos
+          UPDATED_REPOS=$(python3 update_precommit.py)
+          echo "updated_repos=$UPDATED_REPOS" >> $GITHUB_ENV
+          echo "::set-output name=updated_repos::$UPDATED_REPOS"
 
-      - name: Check and update pre-commit config
-        id: check_pre_commit_config
+      - name: Verify if any repos were updated
+        id: verify_updates
         run: |
-          CURRENT_VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('.pre-commit-config.yaml'))['repos'][0]['rev'])")
-          LATEST_BLACK_VERSION="${{ steps.get_black_version.outputs.black_version }}"
-
-          if [ "$CURRENT_VERSION" != "$LATEST_BLACK_VERSION" ]; then
-            echo 'Found different versions'
-            echo "Updating .pre-commit-config.yaml to use Black $LATEST_BLACK_VERSION"
-            python3 update_precommit.py $LATEST_BLACK_VERSION
-            git config --global user.name "GitHub Action"
-            git config --global user.email "action@github.com"
-            git push -d origin update-black-$LATEST_BLACK_VERSION 
-            git checkout -b update-black-$LATEST_BLACK_VERSION
-            git add .pre-commit-config.yaml
-            git commit -m '🆙 UPGRADE: Black version to $LATEST_BLACK_VERSION in pre-commit'
-            git push origin update-black-$LATEST_BLACK_VERSION  
-            echo "version_updated=true" >> $GITHUB_OUTPUT
-            sleep 5
-          else
-            echo 'Black version is up to date.'
+          if [ "${{ steps.check_versions.outputs.updated_repos }}" = "[]" ]; then
             echo "version_updated=false" >> $GITHUB_OUTPUT
+          else
+            echo "version_updated=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Commit and push changes if updates were made
+        id: commit_push
+        if: steps.verify_updates.outputs.version_updated == 'true'
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
+          # Create unique branch name with date and time
+          BRANCH_NAME="update-precommit-$(date +'%Y%m%d%H%M%S')"
+          echo "updated_repos=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "::set-output name=branch_name::$BRANCH_NAME"
+          echo "$BRANCH_NAME"
+          git checkout -b $BRANCH_NAME
+
+          # Stage, commit, and push changes
+          git add .pre-commit-config.yaml
+          git commit -m "🆙 UPGRADE: Updated versions in pre-commit for ${{ steps.check_versions.outputs.updated_repos }}"
+          git push origin $BRANCH_NAME
+   
+      - name: PRINTING STUFF
+        run: |
+          echo "updated repos: ${{ steps.check_versions.outputs.updated_repos }}"
+          echo "version_updated: ${{ steps.verify_updates.outputs.version_updated }}"
+          echo "branch_name: ${{ steps.commit_push.outputs.branch_name }}"
+
       - name: Checkout to main
-        if: steps.check_pre_commit_config.outputs.version_updated == 'true'
+        if: steps.verify_updates.outputs.version_updated == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
 
       - name: Reset main branch
-        if: steps.check_pre_commit_config.outputs.version_updated == 'true'
+        if: steps.verify_updates.outputs.version_updated == 'true'
         run: |
-          git fetch origin update-black-${{ steps.get_black_version.outputs.black_version }}:update-black-${{ steps.get_black_version.outputs.black_version }}
-          git reset --hard update-black-${{ steps.get_black_version.outputs.black_version }}
+          git fetch origin ${{ steps.commit_push.outputs.branch_name }}:${{ steps.commit_push.outputs.branch_name }}
+          git reset --hard ${{ steps.commit_push.outputs.branch_name }}
 
       - name: Create Pull Request
-        if: steps.check_pre_commit_config.outputs.version_updated == 'true'
+        if: steps.verify_updates.outputs.version_updated == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: main
-          branch: update-black-${{ steps.get_black_version.outputs.black_version }}
+          branch: ${{ steps.commit_push.outputs.branch_name }}
           delete-branch: true
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
-          commit-message: "🆙 UPGRADE: Black version to ${{ steps.get_black_version.outputs.black_version }} in pre-commit"
-          title: "Update Black to ${{ steps.get_black_version.outputs.black_version }}"
-          body: "This PR updates Black to the latest version ${{ steps.get_black_version.outputs.black_version }} in .pre-commit-config.yaml"
+          commit-message: "🆙 UPGRADE: Updated versions in pre-commit for ${{ steps.check_versions.outputs.updated_repos }}"
+          title: "Update pre-commit versions: ${{ steps.check_versions.outputs.updated_repos }}"
+          body: "This PR updates the versions in .pre-commit-config.yaml for the following repos: ${{ steps.check_versions.outputs.updated_repos }}"
           labels: |
             automated
             pre-commit
