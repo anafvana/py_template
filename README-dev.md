@@ -16,22 +16,22 @@ if [ ! -d "$(pwd)/venv" ]; then python3 -m venv "$(pwd)/venv"; fi; source "$(pwd
 which pip
 ```
 
-3. Install `flit`
+3. Install `poetry`
 
 ```commandline
-pip install flit
+pip install poetry
 ```
 
-4. Check that `flit` is running from `venv`
+4. Check that `poetry` is running from `venv`
 
 ```commandline
-which flit
+which poetry
 ```
 
-5. Install package with `flit`
+5. Install package with `poetry`
 
 ```commandline
-flit install --extras all
+poetry install --with dev,test
 ```
 
 6. Install `pre-commit`
@@ -60,9 +60,9 @@ Manage dependencies via `pyproject.toml`.
 
 Dependencies are separated between:
 
-- `[project.dependencies]`: dependencies required for the package to run
-- `[project.optional-dependencies.dev]`: dependencies required for developing the package (_e.g._ `flit`)
-- `[project.optional-dependencies.test]`: dependencies required specifically for testing (_e.g._ `pytest`)
+- `[tool.poetry.dependencies]`: dependencies required for the package to run
+- `[tool.poetry.group.dev.dependencies`: dependencies required for developing the package (_e.g._ `poetry`)
+- `[tool.poetry.group.test.dependencies]`: dependencies required specifically for testing (_e.g._ `pytest`)
 
 ## GitHub Actions
 

@@ -2,7 +2,7 @@
 
 A template for Python projects, using:
 
-- `flit` for packaging
+- `poetry` for packaging
 - `black` for formatting
 - `flake8` for linting
 - `mypy` for typing
