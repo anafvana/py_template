@@ -4,6 +4,9 @@
 
 Set up project locally:
 
+0. [NEW PROJECTS ONLY] Search and replace "CHANGE_ME" with the name of your project. </br>
+   Recommendation: lowercase/numbers and underscore only
+
 1. Create and/or activate `venv`
 
 ```bash
