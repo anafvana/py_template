@@ -10,13 +10,24 @@ Set up project locally:
 1. Create and/or activate `venv`
 
 ```bash
+# Bash (Mac/Linux)
 if [ ! -d "$(pwd)/venv" ]; then python3 -m venv "$(pwd)/venv"; fi; source "$(pwd)/venv/bin/activate"
+```
+```powershell
+# PowerShell (Windows)
+if (-Not (Test-Path "$PWD\venv")) { python -m venv "$PWD\venv" } & "$PWD\venv\Scripts\Activate.ps1"
 ```
 
 2. Check that pip is running from `venv`
 
-```commandline
+```bash
+# Bash (Mac/Linux)
 which pip
+```
+
+```powershell
+# PowerShell (Windows)
+(Get-Command pip).source
 ```
 
 3. Install `poetry`
@@ -27,8 +38,14 @@ pip install poetry
 
 4. Check that `poetry` is running from `venv`
 
-```commandline
+```bash
+# Bash (Mac/Linux)
 which poetry
+```
+
+```powershell
+# PowerShell (Windows)
+(Get-Command poetry).source
 ```
 
 5. Install package with `poetry`
